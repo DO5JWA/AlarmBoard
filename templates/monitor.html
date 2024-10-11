@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm Monitor</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #121212;
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3rem;
+            margin: 0;
+            padding: 20px 0;
+            background-color: #d32f2f;
+            color: white;
+            width: 100%;
+        }
+
+        #mainContainer {
+            display: none; /* Alarmansicht zu Beginn ausgeblendet */
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+            height: calc(100vh - 100px); /* Höhe abzüglich des Headerbereichs */
+            padding: 20px;
+        }
+
+        #alarmContainer {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+
+        #infoSection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        .info-box {
+            margin: 10px;
+            padding: 20px;
+            width: 90%;
+            background-color: #2c2c2c;
+            border-radius: 10px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            font-size: 2rem;
+        }
+
+        #mapContainer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            background-color: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #map {
+            height: 560px;
+            width: 100%;
+            border: 2px solid #d32f2f;
+        }
+
+        .vehicle-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .vehicle-box {
+            background-color: red;
+            color: white;
+            padding: 20px;
+            margin: 10px;
+            font-size: 1.5rem;
+            animation: blink 1s infinite;
+            border-radius: 5px;
+            width: 150px;
+            text-align: center;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Bereich für die Diashow und Gruppenansicht */
+        #noAlarm {
+            display: block; /* Diashow zu Beginn anzeigen */
+            height: 85vh;
+        }
+    </style>
+</head>
+<body>
+    <h1>Alarm Monitor</h1>
+
+    <div id="mainContainer">
+        <!-- Linke Spalte: Alarmdetails -->
+        <div id="alarmContainer">
+            <div id="infoSection">
+                <div class="info-box">
+                    <p id="einsatz">Einsatz: </p>
+                </div>
+                <div class="info-box">
+                    <p id="ort">Ort: </p>
+                </div>
+                <div class="info-box">
+                    <p id="timestamp">Zeit: </p>
+                </div>
+
+                <div id="fahrzeugeContainer">
+                    <h2>Fahrzeuge im Einsatz:</h2>
+                    <div class="vehicle-container" id="fahrzeuge"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rechte Spalte: Karte -->
+        <div id="mapContainer">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Bereich für Diashow/Mannschaftsansicht -->
+    <div id="noAlarm">
+        <iframe id="infoFrame" src="/diashow" width="100%" height="100%" frameborder="0"></iframe>
+    </div>
+
+    <!-- Audioelemente -->
+    <audio id="gongAudio">
+        <source src="/static/Kleinalarm.mp3" type="audio/mpeg"></audio>
+    <audio id="alarmAudio" src="/static/alarm_tts.mp3"></audio>
+    <audio id="nachalarmAudio" src="/static/nachalarm_tts.mp3"></audio>
+
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var alarmAudio = document.getElementById('alarmAudio');
+        var gongAudio = document.getElementById('gongAudio');
+        var nachalarmAudio = document.getElementById('nachalarmAudio');
+        var map;
+        var intervalId;  // Intervall für die Slideshow
+
+        // Socket-Listener für "Einsatz beendet"
+        socket.on('einsatz_beendet', function () {
+            console.log('Einsatz beendet empfangen');
+
+            // Wechsel zwischen Diashow und Gruppenansicht aktivieren
+            toggleView(false);  // Schaltet zur Diashow/Alarmansicht
+            startSlideshow();  // Startet den Wechsel zwischen Diashow und Gruppenansicht
+        });
+
+        // Funktion zum Starten der Slideshow
+        function startSlideshow() {
+            // Setze das Intervall zum Wechseln der Diashow und Gruppenansicht
+            intervalId = setInterval(function() {
+                var iframe = document.getElementById('infoFrame');
+                iframe.src = iframe.src.includes("/diashow") ? "/gruppen?ts=" + new Date().getTime() : "/diashow?ts=" + new Date().getTime();
+            }, 100000);  // Wechselt alle 100 Sekunden
+        }
+
+        // Funktion zum Beenden der Slideshow
+        function stopSlideshow() {
+            clearInterval(intervalId);  // Beendet das Intervall
+        }
+
+        // Funktion zum Umschalten der Ansichten
+        function toggleView(isAlarm) {
+            var noAlarmView = document.getElementById('noAlarm');  // Diashow/Gruppenansicht
+            var mainContainer = document.getElementById('mainContainer');  // Alarmansicht
+
+            if (isAlarm) {
+                // Zeige die Alarmansicht und verstecke die Diashow/Gruppenansicht
+                noAlarmView.style.display = 'none';
+                mainContainer.style.display = 'flex';
+                stopSlideshow();  // Slideshow stoppen, da ein Alarm eingetroffen ist
+            } else {
+                // Zeige die Diashow/Gruppenansicht und verstecke die Alarmansicht
+                noAlarmView.style.display = 'block';
+                mainContainer.style.display = 'none';
+            }
+        }
+
+        // Bei neuem Alarm die Slideshow stoppen und die Alarmansicht anzeigen
+        socket.on('new_alarm', function (alarmData) {
+            console.log('Empfangene Alarmdaten:', alarmData);
+
+            // Stoppt die Diashow/Gruppenansicht und wechselt zur Alarmansicht
+            toggleView(true);
+
+            // Alarminformationen aktualisieren und Alarm abspielen
+            if (alarmData) {
+                document.getElementById('einsatz').textContent = "Einsatz: " + alarmData.einsatz;
+                document.getElementById('ort').textContent = "Ort: " + alarmData.ort;
+                document.getElementById('timestamp').textContent = "Zeit: " + alarmData.timestamp;
+
+                const fahrzeugeDiv = document.getElementById('fahrzeuge');
+                fahrzeugeDiv.innerHTML = '';  // Fahrzeugliste zurücksetzen
+                const fahrzeuge = alarmData.fahrzeuge.split(', ');  // Fahrzeuge als Liste
+                fahrzeuge.forEach(fahrzeug => {
+                    const vehicleBox = document.createElement('div');
+                    vehicleBox.classList.add('vehicle-box');
+                    vehicleBox.textContent = fahrzeug;
+                    fahrzeugeDiv.appendChild(vehicleBox);
+                });
+
+                // Karte aktualisieren
+                if (!map) {
+    map = L.map('map', {
+        zoomControl: false,  // Deaktiviere Zoom-Steuerungen (Plus/Minus-Schaltflächen)
+        scrollWheelZoom: false,  // Deaktiviere Scrollen zum Zoomen
+        doubleClickZoom: false,  // Deaktiviere Zoom per Doppelklick
+        boxZoom: false,  // Deaktiviere Box-Zoom
+        keyboard: false  // Deaktiviere Tastatur-Zoom
+    }).setView([alarmData.koord_lat, alarmData.koord_lon], 17);  // Setze maximalen Zoom-Level auf 19
+
+    // Hinzufügen von Kartenkacheln (z.B. OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 17  // Maximaler Zoom-Level der Kacheln auf 19
+    }).addTo(map);
+} else {
+    map.setView([alarmData.koord_lat, alarmData.koord_lon], 19);
+}
+
+                if (map.marker) {
+                    map.marker.setLatLng([alarmData.koord_lat, alarmData.koord_lon]).update();
+                } else {
+                    map.marker = L.marker([alarmData.koord_lat, alarmData.koord_lon]).addTo(map)
+                        .bindPopup("Einsatzort")
+                        .openPopup();
+                }
+
+                playGongAndErstalarm();  // Erstalarm abspielen
+            }
+        });
+
+        // Bei Nachalarm ebenfalls zur Alarmansicht wechseln
+        socket.on('new_nachalarm', function (alarmData) {
+            console.log('Empfangene Nachalarmdaten:', alarmData);
+
+            // Stoppt die Diashow/Gruppenansicht und wechselt zur Alarmansicht
+            toggleView(true);
+
+            // Nachalarminformationen aktualisieren und Nachalarm abspielen
+            if (alarmData) {
+                document.getElementById('einsatz').textContent = "Nachalarm: " + alarmData.einsatz;
+                document.getElementById('ort').textContent = "Ort: " + alarmData.ort;
+                document.getElementById('timestamp').textContent = "Zeit: " + alarmData.timestamp;
+
+                const fahrzeugeDiv = document.getElementById('fahrzeuge');
+                const nachgeforderteFahrzeuge = alarmData.fahrzeuge.split(', ');
+                nachgeforderteFahrzeuge.forEach(fahrzeug => {
+                    const vehicleBox = document.createElement('div');
+                    vehicleBox.classList.add('vehicle-box');
+                    vehicleBox.textContent = fahrzeug;
+                    fahrzeugeDiv.appendChild(vehicleBox);
+                });
+
+                playGongAndNachalarm();  // Nachalarm abspielen
+            }
+        });
+
+        // Funktion zum Abspielen von Gong und Erstalarm
+        function playGongAndErstalarm() {
+            console.log("Versuche Gong für Erstalarm abzuspielen...");
+            
+            gongAudio.play().then(() => {
+                console.log("Gong erfolgreich abgespielt, warte 8 Sekunden...");
+                
+                setTimeout(() => {
+                    console.log("Versuche Erstalarm abzuspielen...");
+                    
+                    alarmAudio.src = '/static/alarm_tts.mp3?' + new Date().getTime();  // Cache umgehen
+                    alarmAudio.volume = 1.0;  // Maximale Lautstärke setzen
+                    alarmAudio.load();  // Stelle sicher, dass die Datei geladen ist
+                    
+                    alarmAudio.play().then(() => {
+                        console.log("Erstalarm erfolgreich abgespielt.");
+                        alarmAudio.onended = function() {
+                            console.log("Erstalarm beendet.");
+                            alarmAudio.src = '';  // Quelle nach Abspielen leeren
+                        };
+                    }).catch(function (error) {
+                        console.error("Fehler beim Abspielen des Erstalarms: ", error);
+                    });
+
+                }, 8000);  // 8 Sekunden Pause zwischen Gong und Erstalarm
+            }).catch(function (error) {
+                console.error("Fehler beim Abspielen des Gongs: ", error);
+            });
+        }
+
+        // Funktion zum Abspielen von Gong und Nachalarm
+        function playGongAndNachalarm() {
+            console.log("Versuche Gong für Nachalarm abzuspielen...");
+            
+            gongAudio.play().then(() => {
+                console.log("Gong erfolgreich abgespielt, warte 8 Sekunden...");
+                
+                setTimeout(() => {
+                    console.log("Versuche Nachalarm abzuspielen...");
+                    
+                    nachalarmAudio.src = '/static/nachalarm_tts.mp3?' + new Date().getTime();  // Cache umgehen
+                    nachalarmAudio.volume = 1.0;  // Maximale Lautstärke setzen
+                    nachalarmAudio.load();  // Stelle sicher, dass die Datei geladen ist
+                    
+                    nachalarmAudio.play().then(() => {
+                        console.log("Nachalarm erfolgreich abgespielt.");
+                        nachalarmAudio.onended = function() {
+                            console.log("Nachalarm beendet.");
+                            nachalarmAudio.src = '';  // Quelle nach Abspielen leeren
+                        };
+                    }).catch(function (error) {
+                        console.error("Fehler beim Abspielen des Nachalarms: ", error);
+                    });
+
+                }, 8000);  // 8 Sekunden Pause zwischen Gong und Nachalarm
+            }).catch(function (error) {
+                console.error("Fehler beim Abspielen des Gongs: ", error);
+            });
+        }
+    </script>
+</body>
+</html>

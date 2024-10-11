@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diashow</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        img {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            transition: opacity 1s ease-in-out; /* Sanfter Übergang */
+            opacity: 0;  /* Start mit unsichtbarem Bild */
+        }
+        .visible {
+            opacity: 1;  /* Sichtbares Bild */
+        }
+    </style>
+</head>
+<body>
+    <img id="slideshow" src="" alt="Diashow Bild">
+    <script>
+        const images = [
+            '/static/bilder/1.jpg',  // Pfad zu deinen Bildern
+            '/static/bilder/2.jpg',
+            '/static/bilder/3.jpg',
+            '/static/bilder/4.jpg',
+            '/static/bilder/5.jpg',
+            '/static/bilder/6.jpg',
+            '/static/bilder/7.jpg',
+            '/static/bilder/8.jpg',
+            '/static/bilder/9.jpg',
+            '/static/bilder/10.jpg'
+        ];
+
+        let currentIndex = 0;
+        const slideshow = document.getElementById('slideshow');
+
+        function showNextImage() {
+            slideshow.classList.remove('visible'); // Blende das aktuelle Bild aus
+            setTimeout(() => {
+                slideshow.src = images[currentIndex];
+                slideshow.classList.add('visible'); // Zeige das neue Bild an
+                currentIndex = (currentIndex + 1) % images.length;
+            }, 2000);  // Warte 1 Sekunde, bis das Bild vollständig ausgeblendet ist
+        }
+
+        setInterval(showNextImage, 10000);  // Bildwechsel alle 6 Sekunden (inkl. 1 Sekunde für den Fade-Effekt)
+        window.onload = showNextImage;  // Zeige das erste Bild beim Laden der Seite
+    </script>
+</body>
+</html>

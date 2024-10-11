@@ -1,0 +1,2 @@
+2024-10-11 08:06:25	Alarm ausgelöst	{"einsatz": "Baumsperre", "ort": "Templin Am Markt", "fahrzeuge": "KdoW, RW", "koord_lat": "53.1196977", "koord_lon": "13.5014824", "timestamp": "11.10.2024, 08:06:24", "nachforderung": false}
+2024-10-11 08:07:03	Nachalarmierung	{"einsatz": "Baumsperre", "ort": "Templin Am Markt", "fahrzeuge": "MTF, GW", "koord_lat": "53.1196977", "koord_lon": "13.5014824", "timestamp": "11.10.2024, 08:07:01", "nachforderung": true}

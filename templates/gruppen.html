@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mannschaftsübersicht</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212; /* Dunkler Hintergrund */
+            color: #ffffff; /* Weißer Text auf dunklem Hintergrund */
+        }
+        h1 {
+            text-align: center;
+        }
+        .group-container {
+            display: flex;
+            flex-wrap: wrap; /* Damit die Gruppen umbrechen, falls nicht genug Platz ist */
+            justify-content: space-around; /* Gruppen gleichmäßig verteilen */
+        }
+        .group {
+            margin: 10px;
+            padding: 20px;
+            background-color: #1e1e1e; /* Dunkleres Grau für Gruppen */
+            border: 1px solid #333; /* Ein dunkler Rahmen */
+            width: 300px; /* Feste Breite für die Gruppen */
+        }
+        .group h2 {
+            margin-bottom: 10px;
+            color: #ff5722; /* Rot-orangefarbene Überschriften */
+        }
+        .group ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .group ul li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mannschaftszusammensetzung</h1>
+    <div class="group-container">
+        <div class="group">
+            <h2>Gruppe 1</h2>
+            <ul>
+                <li>Max Mustermann</li>
+                <li>Anna Beispiel</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+            </ul>
+            <h2>Betreuer</h2>
+            <ul>
+                <li>...</li>
+            </ul>
+        </div>
+        <div class="group">
+            <h2>Gruppe 2</h2>
+            <ul>
+                <li>John Doe</li>
+                <li>Jane Doe</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+            </ul>
+            <h2>Betreuer</h2>
+            <ul>
+                <li>...</li>
+            </ul>
+        </div>
+        <div class="group">
+            <h2>Gruppe 3</h2>
+            <ul>
+                <li>John Doe</li>
+                <li>Jane Doe</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+            </ul>
+            <h2>Betreuer</h2>
+            <ul>
+                <li>...</li>
+            </ul>
+        </div>
+        <div class="group">
+            <h2>Gruppe 4</h2>
+            <ul>
+                <li>John Doe</li>
+                <li>Jane Doe</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+            </ul>
+            <h2>Betreuer</h2>
+            <ul>
+                <li>...</li>
+            </ul>
+        </div>
+        <div class="group">
+            <h2>Gruppe 5</h2>
+            <ul>
+                <li>John Doe</li>
+                <li>Jane Doe</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+                <li>...</li>
+            </ul>
+            <h2>Betreuer</h2>
+            <ul>
+                <li>...</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

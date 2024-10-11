@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einsatz Eingabe</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        #clock {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        form {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 2000px;
+        }
+
+        label {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="text"], button[type="submit"], #endEinsatzBtn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        input[type="text"] {
+            border: 1px solid #ddd;
+        }
+
+        button[type="submit"] {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #c82333;
+        }
+
+        #endEinsatzBtn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        #endEinsatzBtn:hover {
+            background-color: #0056b3;
+        }
+
+        .coordinates-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .coordinates-container input {
+            flex: 1;
+        }
+
+        .vehicle-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-button {
+            flex: 1 1 calc(15% - 10px);
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .vehicle-button.selected {
+            background-color: #dc3545;
+        }
+
+        .vehicle-button.disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Einsatz-Eingabe</h1>
+
+    <div id="clock"></div>
+
+    <form id="alarmForm">
+        <label for="einsatz">Einsatz:</label>
+        <input type="text" id="einsatz" name="einsatz" placeholder="Einsatzbeschreibung" required>
+
+        <label for="ort">Ort (Adresse):</label>
+        <input type="text" id="ort" name="ort" placeholder="Adresse des Einsatzortes" required>
+
+        <div class="coordinates-container">
+            <div>
+                <label for="koord_lat">Koordinaten (Lat):</label>
+                <input type="text" id="koord_lat" name="koord_lat" readonly>
+            </div>
+            <div>
+                <label for="koord_lon">Koordinaten (Lon):</label>
+                <input type="text" id="koord_lon" name="koord_lon" readonly>
+            </div>
+        </div>
+
+        <label for="fahrzeuge">Fahrzeuge auswählen:</label>
+        <div class="vehicle-buttons">
+            <button type="button" class="vehicle-button" data-vehicle="ELW">ELW</button>
+            <button type="button" class="vehicle-button" data-vehicle="KdoW">KdoW</button>
+            <button type="button" class="vehicle-button" data-vehicle="TLF">TLF</button>
+            <button type="button" class="vehicle-button" data-vehicle="TLF 9000">TLF 9000</button>
+            <button type="button" class="vehicle-button" data-vehicle="DLK">DLK</button>
+            <button type="button" class="vehicle-button" data-vehicle="LF 20 16">LF 20 16</button>
+            <button type="button" class="vehicle-button" data-vehicle="RW">RW</button>
+            <button type="button" class="vehicle-button" data-vehicle="GW">GW</button>
+            <button type="button" class="vehicle-button" data-vehicle="LF">LF</button>
+            <button type="button" class="vehicle-button" data-vehicle="TSF">TSF</button>
+            <button type="button" class="vehicle-button" data-vehicle="TSA">TSA</button>
+            <button type="button" class="vehicle-button" data-vehicle="MTF">MTF</button>
+            <button type="button" class="vehicle-button" data-vehicle="SW">SW</button>
+            <button type="button" class="vehicle-button" data-vehicle="WLF">WLF</button>
+            <button type="button" class="vehicle-button" data-vehicle="KTW">KTW</button>
+            <button type="button" class="vehicle-button" data-vehicle="RTW">RTW</button>
+            <button type="button" class="vehicle-button" data-vehicle="NEF">NEF</button>
+            <button type="button" class="vehicle-button" data-vehicle="MZB">MZB</button>
+        </div>
+
+        <button type="submit">Alarm auslösen</button>
+    </form>
+
+    <button id="endEinsatzBtn">Einsatz beendet</button>
+
+    <script>
+        // Fahrzeugauswahl und Alarmstatus
+        let selectedVehicles = [];
+        let alarmTriggered = false;
+        let initialVehicles = [];
+
+        document.querySelectorAll('.vehicle-button').forEach(button => {
+            button.addEventListener('click', function () {
+                const vehicle = this.getAttribute('data-vehicle');
+                if (!selectedVehicles.includes(vehicle)) {
+                    selectedVehicles.push(vehicle);
+                    this.classList.add('selected');
+                    this.classList.add('disabled'); // Fahrzeug wird deaktiviert
+                    this.disabled = true; // Button deaktiviert
+                }
+            });
+        });
+
+        document.getElementById('alarmForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const alarmData = {
+                einsatz: document.getElementById('einsatz').value,
+                ort: document.getElementById('ort').value,
+                fahrzeuge: selectedVehicles.join(', '),
+                koord_lat: document.getElementById('koord_lat').value,
+                koord_lon: document.getElementById('koord_lon').value,
+                timestamp: new Date().toLocaleString(),
+                nachforderung: alarmTriggered
+            };
+
+            if (!alarmTriggered) {
+                initialVehicles = [...selectedVehicles];
+                alarmTriggered = true;
+                axios.post('/submit', alarmData)
+                    .then(() => alert('Alarm erfolgreich gesendet!'))
+                    .catch(() => alert('Fehler beim Senden des Alarms!'));
+            } else {
+                const nachforderungVehicles = selectedVehicles.filter(v => !initialVehicles.includes(v));
+                alarmData.fahrzeuge = nachforderungVehicles.join(', ');
+                axios.post('/nachalarm', alarmData)
+                    .then(() => alert('Nachalarmierung erfolgreich gesendet!'))
+                    .catch(() => alert('Fehler beim Senden der Nachalarmierung!'));
+            }
+        });
+
+        // Einsatz beenden und Formular leeren
+        document.getElementById('endEinsatzBtn').addEventListener('click', function () {
+            axios.post('/end_alarm')
+                .then(() => {
+                    alert('Einsatz erfolgreich beendet!');
+                    document.getElementById('alarmForm').reset(); // Formular zurücksetzen
+                    selectedVehicles = []; // Fahrzeugauswahl zurücksetzen
+                    document.querySelectorAll('.vehicle-button').forEach(button => {
+                        button.classList.remove('selected', 'disabled');
+                        button.disabled = false; // Fahrzeug wieder aktivieren
+                    });
+                    alarmTriggered = false;
+                })
+                .catch(() => alert('Fehler beim Beenden des Einsatzes!'));
+        });
+
+        // Funktion für die Uhr
+        function updateClock() {
+            const now = new Date();
+            const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+            const day = days[now.getDay()];
+            const time = now.toLocaleTimeString();
+            const date = now.toLocaleDateString();
+            document.getElementById('clock').textContent = `${day}, ${date}, ${time}`;
+        }
+
+        // Aktualisiere die Uhr jede Sekunde
+        setInterval(updateClock, 1000);
+        updateClock();  // Initialer Aufruf
+
+        // Funktion zum automatischen Abrufen der Koordinaten bei Adresseingabe
+        document.getElementById('ort').addEventListener('blur', function () {
+            const address = document.getElementById('ort').value;
+            if (address) {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+
+                axios.get(url)
+                    .then(response => {
+                        if (response.data.length > 0) {
+                            const lat = response.data[0].lat;
+                            const lon = response.data[0].lon;
+                            document.getElementById('koord_lat').value = lat;
+                            document.getElementById('koord_lon').value = lon;
+                        } else {
+                            alert('Adresse konnte nicht gefunden werden.');
+                        }
+                    })
+                    .catch(() => alert('Fehler beim Abrufen der Koordinaten.'));
+            }
+        });
+    </script>
+</body>
+</html>
